@@ -30,6 +30,9 @@ export default function AppLayout() {
           <Link to="/" className="text-white!">
             Products
           </Link>
+          <Link to="/categories" className="text-white!">
+            Categories
+          </Link>
 
           {!token && (
             <>

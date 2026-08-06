@@ -1,17 +1,21 @@
-import { Alert, Button, Form, Input, Typography } from "antd";
+import { Alert, Button, Form, Input, Result, Typography } from "antd";
 import { useState } from "react";
+import { useNavigate } from "react-router";
 import type { Order } from "../../types";
 import { apiFetch } from "../../utils/api";
 
 /**
  * Checkout flow:
- * 1) POST /orders with shipping address (builds order from cart)
- * 2) POST /payments/checkout/:orderId → { checkoutUrl }
- * 3) Redirect browser to Stripe
+ * 1) POST /orders with shipping address
+ * 2) Show "Order successful"
+ * 3) Try Stripe checkout; if that works, redirect to pay
+ * 4) Otherwise (or after payment return) go to the Orders page
  */
 export default function CheckoutPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [orderSuccess, setOrderSuccess] = useState(false);
+  const navigate = useNavigate();
 
   const onFinish = async (values: {
     street: string;
@@ -26,27 +30,52 @@ export default function CheckoutPage() {
         body: JSON.stringify({ shippingAddress: values }),
       });
 
-      const payment = await apiFetch<{ checkoutUrl: string }>(
-        `/payments/checkout/${order._id}`,
-        { method: "POST" },
-      );
+      // Order exists in the database — show success immediately
+      setOrderSuccess(true);
 
-      if (!payment.checkoutUrl) {
-        throw new Error("No checkout URL returned from the server.");
+      // Try to start Stripe payment (optional if Stripe fails)
+      try {
+        const payment = await apiFetch<{ checkoutUrl: string }>(
+          `/payments/checkout/${order._id}`,
+          { method: "POST" },
+        );
+        if (payment.checkoutUrl) {
+          window.location.href = payment.checkoutUrl;
+          return;
+        }
+      } catch {
+        // Payment session failed, but the order was still placed
       }
 
-      window.location.href = payment.checkoutUrl;
+      // No Stripe redirect → go to Orders after a short pause so the user sees success
+      setTimeout(() => navigate("/orders"), 1500);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Checkout failed");
       setLoading(false);
     }
   };
 
+  if (orderSuccess) {
+    return (
+      <Result
+        status="success"
+        title="Order successful"
+        subTitle="Taking you to your orders…"
+        extra={
+          <Button type="primary" onClick={() => navigate("/orders")}>
+            Go to orders now
+          </Button>
+        }
+      />
+    );
+  }
+
   return (
     <div className="max-w-md mx-auto bg-white border border-[#ddd4c8] p-6 rounded">
       <Typography.Title level={2}>Checkout</Typography.Title>
       <Typography.Paragraph type="secondary">
-        We create an order from your cart, then send you to Stripe to pay.
+        Enter your shipping details to place the order. You may be sent to Stripe
+        to pay.
       </Typography.Paragraph>
 
       {error && <Alert className="mb-4" type="error" message={error} showIcon />}
@@ -62,7 +91,7 @@ export default function CheckoutPage() {
           <Input />
         </Form.Item>
         <Button type="primary" htmlType="submit" loading={loading} block>
-          Place order &amp; pay
+          Place order
         </Button>
       </Form>
     </div>

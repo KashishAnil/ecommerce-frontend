@@ -1,28 +1,26 @@
-import { Button, Typography } from "antd";
-import { Link } from "react-router";
+import { Button, Result } from "antd";
+import { useEffect } from "react";
+import { useNavigate } from "react-router";
 
-/**
- * Shown after Stripe payment when success_url points here.
- * Note: backend currently hardcodes success_url to
- * http://localhost:3000/payments/success — update that to
- * http://localhost:5173/success (Vite default) when you're ready.
- */
+/** After Stripe (or direct success), show confirmation then go to Orders. */
 export default function SuccessPage() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const timer = setTimeout(() => navigate("/orders"), 2000);
+    return () => clearTimeout(timer);
+  }, [navigate]);
+
   return (
-    <div className="bg-white border border-[#ddd4c8] p-8 rounded text-center">
-      <Typography.Title level={2}>Thank you — order placed</Typography.Title>
-      <Typography.Paragraph>
-        Your payment was successful. The backend will mark the order as{" "}
-        <strong>paid</strong> via Stripe’s webhook automatically.
-      </Typography.Paragraph>
-      <div className="flex flex-wrap justify-center gap-3 mt-4">
-        <Link to="/orders">
-          <Button type="primary">View your orders</Button>
-        </Link>
-        <Link to="/">
-          <Button>Back to products</Button>
-        </Link>
-      </div>
-    </div>
+    <Result
+      status="success"
+      title="Order successful"
+      subTitle="Payment received. Taking you to your orders…"
+      extra={
+        <Button type="primary" onClick={() => navigate("/orders")}>
+          Go to orders now
+        </Button>
+      }
+    />
   );
 }

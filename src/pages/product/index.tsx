@@ -3,24 +3,27 @@ import {
   Button,
   Form,
   InputNumber,
+  Popconfirm,
   Spin,
   Typography,
 } from "antd";
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import { useAppSelector } from "../../hooks/redux";
 import type { Product } from "../../types";
 import { apiFetch, formatMoney } from "../../utils/api";
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { token, role } = useAppSelector((s) => s.auth);
+  const { token, role, userId } = useAppSelector((s) => s.auth);
+  const navigate = useNavigate();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [adding, setAdding] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -50,6 +53,18 @@ export default function ProductDetailPage() {
     product &&
     (product.quantityAvailable || 0) > 0;
 
+  // Seller can soft-delete only products they own
+  const sellerId =
+    product && typeof product.seller === "object" && product.seller !== null
+      ? String((product.seller as { _id?: string })._id || product.seller)
+      : String(product?.seller || "");
+  const canDeleteProduct =
+    Boolean(token) &&
+    role === "Seller" &&
+    product &&
+    product.isActive !== false &&
+    sellerId === String(userId);
+
   const onAdd = async (values: { quantity: number }) => {
     if (!product) return;
     setError("");
@@ -68,6 +83,21 @@ export default function ProductDetailPage() {
       setError(err instanceof Error ? err.message : "Could not add to cart");
     } finally {
       setAdding(false);
+    }
+  };
+
+  const onDeleteProduct = async () => {
+    if (!product) return;
+    setError("");
+    setDeleting(true);
+    try {
+      await apiFetch(`/products/${product._id}`, { method: "DELETE" });
+      setSuccess("Product deleted.");
+      setTimeout(() => navigate("/"), 800);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not delete product");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -130,13 +160,30 @@ export default function ProductDetailPage() {
               </Form.Item>
             </Form>
           ) : token && role === "Customer" ? (
-            <Typography.Paragraph type="secondary">
-              Out of stock.
+            <Typography.Paragraph type="secondary" className="mt-3">
+              Out of stock. You can delete items from your{" "}
+              <Link to="/cart">cart</Link>.
             </Typography.Paragraph>
-          ) : (
-            <Typography.Paragraph type="secondary">
+          ) : !token ? (
+            <Typography.Paragraph type="secondary" className="mt-3">
               Log in as a Customer to add this to your cart.
             </Typography.Paragraph>
+          ) : null}
+
+          {canDeleteProduct && (
+            <div className="mt-4">
+              <Popconfirm
+                title="Delete this product?"
+                description="It will be soft-deleted (hidden from the store)."
+                onConfirm={onDeleteProduct}
+                okText="Delete"
+                okButtonProps={{ danger: true }}
+              >
+                <Button danger loading={deleting}>
+                  Delete product
+                </Button>
+              </Popconfirm>
+            </div>
           )}
         </div>
       )}

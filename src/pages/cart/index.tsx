@@ -145,7 +145,7 @@ export default function CartPage() {
                     loading={busyId === id}
                     onClick={() => removeItem(id)}
                   >
-                    Remove
+                    Delete
                   </Button>
                 </div>
               </div>
