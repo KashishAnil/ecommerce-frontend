@@ -12,6 +12,7 @@ import { Link, useNavigate, useParams } from "react-router";
 import { useAppSelector } from "../../hooks/redux";
 import type { Product } from "../../types";
 import { apiFetch, formatMoney } from "../../utils/api";
+import { normalizeId } from "../../utils/ids";
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -24,6 +25,7 @@ export default function ProductDetailPage() {
   const [success, setSuccess] = useState("");
   const [adding, setAdding] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [qty, setQty] = useState(1);
 
   useEffect(() => {
     if (!id) return;
@@ -33,7 +35,10 @@ export default function ProductDetailPage() {
       setError("");
       try {
         const data = await apiFetch<Product>(`/products/${id}`);
-        if (!cancelled) setProduct(data);
+        if (!cancelled) {
+          setProduct(data);
+          setQty(1);
+        }
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Failed to load product");
@@ -53,19 +58,14 @@ export default function ProductDetailPage() {
     product &&
     (product.quantityAvailable || 0) > 0;
 
-  // Seller can soft-delete only products they own
-  const sellerId =
-    product && typeof product.seller === "object" && product.seller !== null
-      ? String((product.seller as { _id?: string })._id || product.seller)
-      : String(product?.seller || "");
   const canDeleteProduct =
     Boolean(token) &&
     role === "Seller" &&
-    product &&
+    product != null &&
     product.isActive !== false &&
-    sellerId === String(userId);
+    normalizeId(product.seller) === normalizeId(userId);
 
-  const onAdd = async (values: { quantity: number }) => {
+  const onAdd = async () => {
     if (!product) return;
     setError("");
     setSuccess("");
@@ -75,7 +75,7 @@ export default function ProductDetailPage() {
         method: "POST",
         body: JSON.stringify({
           productId: product._id,
-          quantity: values.quantity,
+          quantity: qty,
         }),
       });
       setSuccess("Added to cart.");
@@ -111,7 +111,7 @@ export default function ProductDetailPage() {
 
   return (
     <div>
-      <Link to="/">← Back to products</Link>
+      <Link to="/">← Back to categories</Link>
 
       {error && <Alert className="my-4" type="error" message={error} showIcon />}
       {success && (
@@ -124,54 +124,11 @@ export default function ProductDetailPage() {
 
       {product && (
         <div className="mt-4 bg-white border border-[#ddd4c8] p-6 rounded">
-          <Typography.Title level={2}>{product.productName}</Typography.Title>
-          {product.imageURL && (
-            <img
-              src={product.imageURL}
-              alt={product.productName}
-              className="max-w-xs w-full mb-4 bg-neutral-100"
-            />
-          )}
-          <Typography.Text type="secondary">
-            {formatMoney(product.price)} · Stock: {product.quantityAvailable ?? 0}
-          </Typography.Text>
-          <Typography.Paragraph className="mt-3">
-            {product.description}
-          </Typography.Paragraph>
-
-          {canAdd ? (
-            <Form
-              layout="inline"
-              onFinish={onAdd}
-              initialValues={{ quantity: 1 }}
-              className="mt-4 gap-2!"
-            >
-              <Form.Item
-                name="quantity"
-                label="Quantity"
-                rules={[{ required: true }]}
-              >
-                <InputNumber min={1} max={product.quantityAvailable} />
-              </Form.Item>
-              <Form.Item>
-                <Button type="primary" htmlType="submit" loading={adding}>
-                  Add to cart
-                </Button>
-              </Form.Item>
-            </Form>
-          ) : token && role === "Customer" ? (
-            <Typography.Paragraph type="secondary" className="mt-3">
-              Out of stock. You can delete items from your{" "}
-              <Link to="/cart">cart</Link>.
-            </Typography.Paragraph>
-          ) : !token ? (
-            <Typography.Paragraph type="secondary" className="mt-3">
-              Log in as a Customer to add this to your cart.
-            </Typography.Paragraph>
-          ) : null}
-
-          {canDeleteProduct && (
-            <div className="mt-4">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <Typography.Title level={2} className="mt-0!">
+              {product.productName}
+            </Typography.Title>
+            {canDeleteProduct && (
               <Popconfirm
                 title="Delete this product?"
                 description="It will be soft-deleted (hidden from the store)."
@@ -183,8 +140,53 @@ export default function ProductDetailPage() {
                   Delete product
                 </Button>
               </Popconfirm>
-            </div>
+            )}
+          </div>
+
+          {product.imageURL && (
+            <img
+              src={product.imageURL}
+              alt={product.productName}
+              className="max-w-xs w-full mb-4 bg-neutral-100"
+            />
           )}
+          <Typography.Text type="secondary">
+            {formatMoney(product.price)} · Stock: {product.quantityAvailable ?? 0}
+          </Typography.Text>
+          <Typography.Paragraph className="mt-3 whitespace-pre-wrap">
+            {product.description}
+          </Typography.Paragraph>
+
+          {canAdd ? (
+            <Form layout="inline" onFinish={onAdd} className="mt-4 gap-2!">
+              <Form.Item label="Quantity">
+                <InputNumber
+                  min={1}
+                  max={product.quantityAvailable}
+                  value={qty}
+                  onChange={(v) => setQty(Number(v) || 1)}
+                />
+              </Form.Item>
+              <Form.Item>
+                <Button type="primary" htmlType="submit" loading={adding}>
+                  Add to cart
+                </Button>
+              </Form.Item>
+            </Form>
+          ) : token && role === "Customer" ? (
+            <Typography.Paragraph type="secondary" className="mt-3">
+              Out of stock. Manage quantities on your{" "}
+              <Link to="/cart">cart</Link>.
+            </Typography.Paragraph>
+          ) : !token ? (
+            <Typography.Paragraph type="secondary" className="mt-3">
+              Log in as a Customer to add this to your cart.
+            </Typography.Paragraph>
+          ) : role === "Seller" && !canDeleteProduct ? (
+            <Typography.Paragraph type="secondary" className="mt-3">
+              You can only delete products you created.
+            </Typography.Paragraph>
+          ) : null}
         </div>
       )}
     </div>

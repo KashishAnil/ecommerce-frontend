@@ -4,7 +4,6 @@ import AppLayout from "./components/AppLayout";
 import { RequireRole } from "./components/RequireAuth";
 import { BASE_NAME } from "./constants/api";
 import CartPage from "./pages/cart";
-import CategoriesPage from "./pages/categories";
 import CheckoutPage from "./pages/checkout";
 import ProductsPage from "./pages/home";
 import LoginPage from "./pages/login";
@@ -21,10 +20,10 @@ function AppRoutes() {
       <BrowserRouter basename={BASE_NAME}>
         <Routes>
           <Route element={<AppLayout />}>
-            {/* Public */}
+            {/* Public — home is categories with expandable products */}
             <Route path="/" element={<ProductsPage />} />
+            <Route path="/categories" element={<ProductsPage />} />
             <Route path="/products/:id" element={<ProductDetailPage />} />
-            <Route path="/categories" element={<CategoriesPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/success" element={<SuccessPage />} />

@@ -28,10 +28,7 @@ export default function AppLayout() {
 
         <nav className="flex flex-wrap items-center gap-3 text-sm">
           <Link to="/" className="text-white!">
-            Products
-          </Link>
-          <Link to="/categories" className="text-white!">
-            Categories
+            Shop
           </Link>
 
           {!token && (

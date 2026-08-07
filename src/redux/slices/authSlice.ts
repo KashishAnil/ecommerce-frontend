@@ -1,4 +1,5 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
+import { normalizeId } from "../../utils/ids";
 
 export type UserRole = "Customer" | "Seller" | "Admin" | "";
 
@@ -9,7 +10,7 @@ type AuthState = {
 };
 
 /** Decode the middle part of a JWT to read userId and role (no library needed). */
-function decodeJwt(token: string): { userId?: string; role?: UserRole } {
+function decodeJwt(token: string): { userId?: unknown; role?: UserRole } {
   try {
     const payload = token.split(".")[1];
     const json = atob(payload.replace(/-/g, "+").replace(/_/g, "/"));
@@ -28,7 +29,7 @@ function loadFromStorage(): AuthState {
   return {
     token,
     role: (decoded.role as UserRole) || "",
-    userId: decoded.userId || "",
+    userId: normalizeId(decoded.userId),
   };
 }
 
@@ -43,7 +44,7 @@ const authSlice = createSlice({
       const decoded = decodeJwt(token);
       state.token = token;
       state.role = (decoded.role as UserRole) || "";
-      state.userId = decoded.userId || "";
+      state.userId = normalizeId(decoded.userId);
       localStorage.setItem("token", token);
     },
     logout(state) {

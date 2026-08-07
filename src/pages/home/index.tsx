@@ -1,43 +1,123 @@
-import { Alert, Button, Card, Empty, Spin, Typography } from "antd";
-import { useEffect, useState } from "react";
-import { Link } from "react-router";
-import type { Product } from "../../types";
-import { apiFetch, formatMoney } from "../../utils/api";
+import { Alert, Collapse, Empty, Spin, Typography } from "antd";
+import { useEffect, useMemo, useState } from "react";
+import ProductCard from "../../components/ProductCard";
+import type { Category, Product } from "../../types";
+import { apiFetch } from "../../utils/api";
+import { normalizeId } from "../../utils/ids";
 
-/** Public product listing — no login required. */
+/**
+ * Home browse: categories first; expand a category to see its products.
+ * Product actions (details, cart qty, seller delete) live on each card.
+ */
 export default function ProductsPage() {
+  const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [activeKeys, setActiveKeys] = useState<string[]>([]);
+
+  const load = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const [cats, prods] = await Promise.all([
+        apiFetch<Category[]>("/categories"),
+        apiFetch<Product[]>("/products"),
+      ]);
+      setCategories(cats || []);
+      setProducts((prods || []).filter((p) => p.isActive !== false));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load shop data");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      setError("");
-      try {
-        const data = await apiFetch<Product[]>("/products");
-        if (!cancelled) {
-          setProducts((data || []).filter((p) => p.isActive !== false));
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to load products");
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    load();
   }, []);
+
+  const productsByCategory = useMemo(() => {
+    const map = new Map<string, Product[]>();
+    for (const p of products) {
+      const catId = normalizeId(p.category) || "uncategorized";
+      const list = map.get(catId) || [];
+      list.push(p);
+      map.set(catId, list);
+    }
+    return map;
+  }, [products]);
+
+  const panels = useMemo(() => {
+    const items = categories.map((c) => {
+      const list = productsByCategory.get(c._id) || [];
+      return {
+        key: c._id,
+        label: `${c.categoryName} (${list.length})`,
+        children:
+          list.length === 0 ? (
+            <Empty description="No products in this category yet" />
+          ) : (
+            <div className="grid gap-3">
+              {list.map((p) => (
+                <ProductCard
+                  key={p._id}
+                  product={p}
+                  onDeleted={(id) =>
+                    setProducts((prev) => prev.filter((x) => x._id !== id))
+                  }
+                />
+              ))}
+            </div>
+          ),
+      };
+    });
+
+    const orphan = productsByCategory.get("uncategorized") || [];
+    // Also catch products whose category id is not in the categories list
+    const knownIds = new Set(categories.map((c) => c._id));
+    const unmatched = products.filter((p) => {
+      const id = normalizeId(p.category);
+      return id && !knownIds.has(id) && id !== "uncategorized";
+    });
+    const extra = [...orphan, ...unmatched];
+    // dedupe
+    const seen = new Set<string>();
+    const uniqueExtra = extra.filter((p) => {
+      if (seen.has(p._id)) return false;
+      seen.add(p._id);
+      return true;
+    });
+
+    if (uniqueExtra.length > 0) {
+      items.push({
+        key: "uncategorized",
+        label: `Other / uncategorized (${uniqueExtra.length})`,
+        children: (
+          <div className="grid gap-3">
+            {uniqueExtra.map((p) => (
+              <ProductCard
+                key={p._id}
+                product={p}
+                onDeleted={(id) =>
+                  setProducts((prev) => prev.filter((x) => x._id !== id))
+                }
+              />
+            ))}
+          </div>
+        ),
+      });
+    }
+
+    return items;
+  }, [categories, productsByCategory, products]);
 
   return (
     <div>
-      <Typography.Title level={2}>Products</Typography.Title>
+      <Typography.Title level={2}>Shop by category</Typography.Title>
       <Typography.Paragraph type="secondary">
-        Browse without logging in. Log in as a Customer to add items to your cart.
+        Expand a category to see its products. Open a product for full details,
+        or add to cart / delete right here when you have permission.
       </Typography.Paragraph>
 
       {error && <Alert type="error" message={error} showIcon className="mb-4" />}
@@ -46,31 +126,20 @@ export default function ProductsPage() {
           <Spin />
         </div>
       )}
-      {!loading && !error && products.length === 0 && (
-        <Empty description="No products yet" />
+      {!loading && !error && categories.length === 0 && products.length === 0 && (
+        <Empty description="No categories or products yet" />
       )}
 
-      <div className="grid gap-4">
-        {products.map((p) => (
-          <Card key={p._id} size="small">
-            <Typography.Title level={4} className="mt-0!">
-              {p.productName}
-            </Typography.Title>
-            <Typography.Text type="secondary">
-              {formatMoney(p.price)} · Stock: {p.quantityAvailable ?? 0}
-            </Typography.Text>
-            <Typography.Paragraph className="mt-2 mb-3!">
-              {(p.description || "").slice(0, 140)}
-              {(p.description || "").length > 140 ? "…" : ""}
-            </Typography.Paragraph>
-            <Link to={`/products/${p._id}`}>
-              <Button type="link" className="px-0!">
-                View details
-              </Button>
-            </Link>
-          </Card>
-        ))}
-      </div>
+      {!loading && panels.length > 0 && (
+        <Collapse
+          accordion={false}
+          activeKey={activeKeys}
+          onChange={(keys) =>
+            setActiveKeys(Array.isArray(keys) ? keys : [keys])
+          }
+          items={panels}
+        />
+      )}
     </div>
   );
 }
