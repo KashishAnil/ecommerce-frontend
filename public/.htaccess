@@ -1,0 +1,16 @@
+# SPA fallback for React Router under /shop/
+# Upload this with the Vite build (it lives in public/ so it copies into dist/)
+
+Options -MultiViews
+RewriteEngine On
+RewriteBase /shop/
+
+# Don't rewrite the main entry file
+RewriteRule ^index\.html$ - [L]
+
+# Serve existing files and directories as-is
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Everything else → index.html (client-side routing)
+RewriteRule . /shop/index.html [L]
