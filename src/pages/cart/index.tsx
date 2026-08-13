@@ -1,13 +1,15 @@
-import { Alert, Button, Empty, InputNumber, Spin, Typography } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router";
+import { Alert } from "../../components/ui/Alert";
+import { Button } from "../../components/ui/Button";
+import { EmptyState } from "../../components/ui/EmptyState";
+import { QuantityInput } from "../../components/ui/QuantityInput";
+import { PageSpinner } from "../../components/ui/Spinner";
 import type { CartItem, CartResponse, Product } from "../../types";
 import { apiFetch, formatMoney } from "../../utils/api";
 
 function asProduct(item: CartItem): Product | null {
-  return typeof item.product === "object" && item.product
-    ? item.product
-    : null;
+  return typeof item.product === "object" && item.product ? item.product : null;
 }
 
 export default function CartPage() {
@@ -24,7 +26,6 @@ export default function CartPage() {
       setItems(data.cartExists?.items || []);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to load cart";
-      // Backend returns an error when no cart exists yet
       if (/empty/i.test(msg)) {
         setItems([]);
       } else {
@@ -75,89 +76,77 @@ export default function CartPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="py-10 text-center">
-        <Spin />
-      </div>
-    );
-  }
+  if (loading) return <PageSpinner />;
 
   return (
-    <div>
-      <Typography.Title level={2}>Your cart</Typography.Title>
-      {error && <Alert className="mb-4" type="error" message={error} showIcon />}
+    <div className="animate-fade-up">
+      <h1 className="font-display text-4xl tracking-tight text-ink">Your cart</h1>
+      {error && <Alert className="mt-4" type="error">{error}</Alert>}
 
       {items.length === 0 ? (
-        <Empty
-          description={
-            <span>
-              Your cart is empty. <Link to="/">Browse products</Link>
-            </span>
-          }
-        />
+        <div className="mt-8">
+          <EmptyState>
+            Your cart is empty. <Link to="/">Browse products</Link>
+          </EmptyState>
+        </div>
       ) : (
-        <div className="bg-white border border-[#ddd4c8] p-4 rounded">
+        <div className="mt-8 overflow-hidden rounded-3xl border border-line bg-cream shadow-card">
           {items.map((item) => {
             const p = asProduct(item);
             const id = p?._id || String(item.product);
+            const busy = busyId === id;
             return (
               <div
                 key={id}
-                className="flex flex-wrap items-center justify-between gap-3 border-b border-[#eee] py-4 last:border-0"
+                className="flex flex-wrap items-center gap-4 border-b border-line px-5 py-5 last:border-0"
               >
-                <div>
-                  <Typography.Text strong>
-                    {p?.productName || "Product"}
-                  </Typography.Text>
-                  <div>
-                    <Typography.Text type="secondary">
-                      {formatMoney(p?.price)} each · Line:{" "}
-                      {formatMoney(lineTotal(item))}
-                    </Typography.Text>
-                  </div>
+                {p?.imageURL ? (
+                  <img
+                    src={p.imageURL}
+                    alt=""
+                    className="h-16 w-16 rounded-xl object-cover bg-paper"
+                  />
+                ) : (
+                  <div className="h-16 w-16 rounded-xl bg-paper" />
+                )}
+                <div className="min-w-40 flex-1">
+                  <p className="font-medium text-ink">{p?.productName || "Product"}</p>
+                  <p className="text-sm text-muted">
+                    {formatMoney(p?.price)} each · Line: {formatMoney(lineTotal(item))}
+                  </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <InputNumber
-                    min={1}
+                  <QuantityInput
                     value={item.quantity}
-                    disabled={busyId === id}
+                    min={1}
+                    disabled={busy}
                     onChange={(v) => {
-                      if (v != null) {
-                        setItems((prev) =>
-                          prev.map((it) =>
-                            (asProduct(it)?._id || String(it.product)) === id
-                              ? { ...it, quantity: v }
-                              : it,
-                          ),
-                        );
-                      }
+                      setItems((prev) =>
+                        prev.map((it) =>
+                          (asProduct(it)?._id || String(it.product)) === id
+                            ? { ...it, quantity: v }
+                            : it,
+                        ),
+                      );
                     }}
                   />
-                  <Button
-                    loading={busyId === id}
-                    onClick={() => updateQty(id, item.quantity)}
-                  >
+                  <Button variant="secondary" loading={busy} onClick={() => updateQty(id, item.quantity)}>
                     Update
                   </Button>
-                  <Button
-                    danger
-                    loading={busyId === id}
-                    onClick={() => removeItem(id)}
-                  >
-                    Delete
+                  <Button variant="danger-ghost" loading={busy} onClick={() => removeItem(id)}>
+                    Remove
                   </Button>
                 </div>
               </div>
             );
           })}
 
-          <Typography.Title level={4} className="mt-4">
-            Cart total: {formatMoney(total)}
-          </Typography.Title>
-          <Link to="/checkout">
-            <Button type="primary">Go to checkout</Button>
-          </Link>
+          <div className="flex flex-wrap items-center justify-between gap-4 bg-paper/70 px-5 py-5">
+            <p className="font-display text-2xl text-ink">Total {formatMoney(total)}</p>
+            <Link to="/checkout" className="no-underline">
+              <Button size="lg">Go to checkout</Button>
+            </Link>
+          </div>
         </div>
       )}
     </div>

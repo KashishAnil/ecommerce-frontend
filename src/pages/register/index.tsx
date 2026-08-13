@@ -1,19 +1,9 @@
-import { Alert, Button, Form, Input, InputNumber, Select, Typography } from "antd";
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router";
+import { Alert } from "../../components/ui/Alert";
+import { Button } from "../../components/ui/Button";
+import { Field, Input, Select } from "../../components/ui/Field";
 import { apiFetch } from "../../utils/api";
-
-type RegisterValues = {
-  fName: string;
-  lName: string;
-  email: string;
-  password: string;
-  phone: number;
-  area: string;
-  city: string;
-  country: string;
-  role: "Customer" | "Seller";
-};
 
 export default function RegisterPage() {
   const [error, setError] = useState("");
@@ -21,7 +11,21 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const onFinish = async (values: RegisterValues) => {
+  const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = new FormData(e.currentTarget);
+    const values = {
+      fName: String(form.get("fName") || ""),
+      lName: String(form.get("lName") || ""),
+      email: String(form.get("email") || ""),
+      password: String(form.get("password") || ""),
+      phone: Number(form.get("phone")),
+      area: String(form.get("area") || ""),
+      city: String(form.get("city") || ""),
+      country: String(form.get("country") || ""),
+      role: String(form.get("role") || "Customer") as "Customer" | "Seller",
+    };
+
     setError("");
     setSuccess("");
     setLoading(true);
@@ -52,68 +56,68 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="max-w-md mx-auto bg-white border border-[#ddd4c8] p-6 rounded">
-      <Typography.Title level={2}>Create an account</Typography.Title>
-      <Typography.Paragraph type="secondary">
-        Choose Customer (shop &amp; order) or Seller (list products).
-      </Typography.Paragraph>
+    <div className="mx-auto max-w-lg animate-fade-up">
+      <div className="rounded-3xl border border-line bg-cream p-7 shadow-card sm:p-8">
+        <p className="text-xs font-medium uppercase tracking-[0.2em] text-brass">Get started</p>
+        <h1 className="mt-2 font-display text-3xl text-ink">Create an account</h1>
+        <p className="mt-2 text-sm text-muted">
+          Choose Customer (shop &amp; order) or Seller (list products).
+        </p>
 
-      {error && (
-        <Alert className="mb-4" type="error" message={error} showIcon />
-      )}
-      {success && (
-        <Alert className="mb-4" type="success" message={success} showIcon />
-      )}
+        {error && <Alert className="mt-5" type="error">{error}</Alert>}
+        {success && <Alert className="mt-5" type="success">{success}</Alert>}
 
-      <Form layout="vertical" onFinish={onFinish} initialValues={{ role: "Customer" }}>
-        <Form.Item name="fName" label="First name" rules={[{ required: true }]}>
-          <Input />
-        </Form.Item>
-        <Form.Item name="lName" label="Last name" rules={[{ required: true }]}>
-          <Input />
-        </Form.Item>
-        <Form.Item
-          name="email"
-          label="Email"
-          rules={[{ required: true, type: "email" }]}
-        >
-          <Input />
-        </Form.Item>
-        <Form.Item
-          name="password"
-          label="Password (min 8 characters)"
-          rules={[{ required: true, min: 8 }]}
-        >
-          <Input.Password />
-        </Form.Item>
-        <Form.Item name="phone" label="Phone" rules={[{ required: true }]}>
-          <InputNumber className="w-full!" />
-        </Form.Item>
-        <Form.Item name="area" label="Area / street" rules={[{ required: true }]}>
-          <Input />
-        </Form.Item>
-        <Form.Item name="city" label="City" rules={[{ required: true }]}>
-          <Input />
-        </Form.Item>
-        <Form.Item name="country" label="Country" rules={[{ required: true }]}>
-          <Input />
-        </Form.Item>
-        <Form.Item name="role" label="Role" rules={[{ required: true }]}>
-          <Select
-            options={[
-              { value: "Customer", label: "Customer" },
-              { value: "Seller", label: "Seller" },
-            ]}
-          />
-        </Form.Item>
-        <Button type="primary" htmlType="submit" loading={loading} block>
-          Register
-        </Button>
-      </Form>
+        <form onSubmit={onSubmit} className="mt-6 space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="First name" htmlFor="fName">
+              <Input id="fName" name="fName" required autoComplete="given-name" />
+            </Field>
+            <Field label="Last name" htmlFor="lName">
+              <Input id="lName" name="lName" required autoComplete="family-name" />
+            </Field>
+          </div>
+          <Field label="Email" htmlFor="reg-email">
+            <Input id="reg-email" name="email" type="email" required autoComplete="email" />
+          </Field>
+          <Field label="Password" htmlFor="reg-password" hint="Minimum 8 characters">
+            <Input
+              id="reg-password"
+              name="password"
+              type="password"
+              required
+              minLength={8}
+              autoComplete="new-password"
+            />
+          </Field>
+          <Field label="Phone" htmlFor="phone">
+            <Input id="phone" name="phone" type="number" required autoComplete="tel" />
+          </Field>
+          <Field label="Area / street" htmlFor="area">
+            <Input id="area" name="area" required autoComplete="address-line1" />
+          </Field>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="City" htmlFor="city">
+              <Input id="city" name="city" required autoComplete="address-level2" />
+            </Field>
+            <Field label="Country" htmlFor="country">
+              <Input id="country" name="country" required autoComplete="country-name" />
+            </Field>
+          </div>
+          <Field label="Role" htmlFor="role">
+            <Select id="role" name="role" defaultValue="Customer" required>
+              <option value="Customer">Customer</option>
+              <option value="Seller">Seller</option>
+            </Select>
+          </Field>
+          <Button type="submit" loading={loading} block className="mt-2">
+            Register
+          </Button>
+        </form>
 
-      <Typography.Paragraph className="mt-4 mb-0!" type="secondary">
-        Already have an account? <Link to="/login">Log in</Link>
-      </Typography.Paragraph>
+        <p className="mt-5 text-sm text-muted">
+          Already have an account? <Link to="/login">Log in</Link>
+        </p>
+      </div>
     </div>
   );
 }

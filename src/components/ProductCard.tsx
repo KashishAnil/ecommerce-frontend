@@ -1,27 +1,19 @@
-import {
-  Alert,
-  Button,
-  Form,
-  InputNumber,
-  Popconfirm,
-  Typography,
-} from "antd";
 import { useState } from "react";
 import { Link } from "react-router";
 import { useAppSelector } from "../hooks/redux";
 import type { Product } from "../types";
 import { apiFetch, formatMoney } from "../utils/api";
 import { normalizeId } from "../utils/ids";
+import { Alert } from "./ui/Alert";
+import { Button } from "./ui/Button";
+import { ConfirmDialog } from "./ui/ConfirmDialog";
+import { QuantityInput } from "./ui/QuantityInput";
 
 type Props = {
   product: Product;
-  /** Called after a seller soft-deletes this product so the list can refresh. */
   onDeleted?: (productId: string) => void;
 };
 
-/**
- * One product row: full description, add-to-cart (Customer), delete (owning Seller).
- */
 export default function ProductCard({ product, onDeleted }: Props) {
   const { token, role, userId } = useAppSelector((s) => s.auth);
   const [qty, setQty] = useState(1);
@@ -29,12 +21,10 @@ export default function ProductCard({ product, onDeleted }: Props) {
   const [success, setSuccess] = useState("");
   const [adding, setAdding] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
-  const canAdd =
-    Boolean(token) &&
-    role === "Customer" &&
-    (product.quantityAvailable || 0) > 0;
-
+  const stock = product.quantityAvailable || 0;
+  const canAdd = Boolean(token) && role === "Customer" && stock > 0;
   const canDelete =
     Boolean(token) &&
     role === "Seller" &&
@@ -64,6 +54,7 @@ export default function ProductCard({ product, onDeleted }: Props) {
     try {
       await apiFetch(`/products/${product._id}`, { method: "DELETE" });
       setSuccess("Product deleted.");
+      setConfirmOpen(false);
       onDeleted?.(product._id);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not delete product");
@@ -73,82 +64,84 @@ export default function ProductCard({ product, onDeleted }: Props) {
   };
 
   return (
-    <div className="bg-white border border-[#ddd4c8] rounded p-4">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <Typography.Title level={4} className="mt-0! mb-1!">
-          {product.productName}
-        </Typography.Title>
-        {canDelete && (
-          <Popconfirm
-            title="Delete this product?"
-            description="It will be soft-deleted (hidden from the store)."
-            onConfirm={onDelete}
-            okText="Delete"
-            okButtonProps={{ danger: true }}
-          >
-            <Button danger size="small" loading={deleting}>
+    <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-cream shadow-card transition duration-300 hover:-translate-y-0.5 hover:shadow-lift">
+      <Link to={`/products/${product._id}`} className="relative block overflow-hidden bg-paper">
+        {product.imageURL ? (
+          <img
+            src={product.imageURL}
+            alt={product.productName}
+            className="aspect-[4/3] w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+          />
+        ) : (
+          <div className="grid aspect-[4/3] place-items-center text-sm text-muted">No image</div>
+        )}
+        {stock <= 0 && (
+          <span className="absolute left-3 top-3 rounded-full bg-ink/80 px-2.5 py-1 text-[11px] font-medium uppercase tracking-wide text-cream">
+            Sold out
+          </span>
+        )}
+      </Link>
+
+      <div className="flex flex-1 flex-col p-4">
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="font-display text-lg leading-snug text-ink">
+            <Link to={`/products/${product._id}`} className="text-ink no-underline hover:text-forest">
+              {product.productName}
+            </Link>
+          </h3>
+          {canDelete && (
+            <Button size="sm" variant="danger-ghost" onClick={() => setConfirmOpen(true)}>
               Delete
             </Button>
-          </Popconfirm>
-        )}
-      </div>
+          )}
+        </div>
 
-      {product.imageURL && (
-        <img
-          src={product.imageURL}
-          alt={product.productName}
-          className="max-w-[200px] w-full mb-3 bg-neutral-100"
-        />
-      )}
+        <p className="mt-1 text-sm font-medium text-brass">{formatMoney(product.price)}</p>
+        <p className="mt-0.5 text-xs text-muted">Stock: {stock}</p>
+        <p className="mt-3 line-clamp-3 flex-1 text-sm leading-relaxed text-muted">
+          {product.description}
+        </p>
 
-      <Typography.Text type="secondary">
-        {formatMoney(product.price)} · Stock: {product.quantityAvailable ?? 0}
-      </Typography.Text>
+        {error && <Alert className="mt-3" type="error">{error}</Alert>}
+        {success && <Alert className="mt-3" type="success">{success}</Alert>}
 
-      <Typography.Paragraph className="mt-2 mb-3! whitespace-pre-wrap">
-        {product.description}
-      </Typography.Paragraph>
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <Link
+            to={`/products/${product._id}`}
+            className="text-sm font-medium text-forest no-underline hover:underline"
+          >
+            Details
+          </Link>
 
-      {error && <Alert className="mb-2" type="error" message={error} showIcon />}
-      {success && (
-        <Alert className="mb-2" type="success" message={success} showIcon />
-      )}
-
-      <div className="flex flex-wrap items-center gap-2">
-        <Link to={`/products/${product._id}`}>
-          <Button type="link" className="px-0!">
-            View full details
-          </Button>
-        </Link>
-
-        {canAdd && (
-          <Form layout="inline" className="gap-2!" onFinish={onAdd}>
-            <Form.Item className="mb-0!" label="Qty">
-              <InputNumber
-                min={1}
-                max={product.quantityAvailable}
-                value={qty}
-                onChange={(v) => setQty(Number(v) || 1)}
-              />
-            </Form.Item>
-            <Form.Item className="mb-0!">
-              <Button type="primary" htmlType="submit" loading={adding}>
+          {canAdd && (
+            <div className="ml-auto flex flex-wrap items-center gap-2">
+              <QuantityInput value={qty} min={1} max={stock} onChange={setQty} />
+              <Button loading={adding} onClick={onAdd}>
                 Add to cart
               </Button>
-            </Form.Item>
-          </Form>
-        )}
+            </div>
+          )}
 
-        {token && role === "Customer" && (product.quantityAvailable || 0) <= 0 && (
-          <Typography.Text type="secondary">Out of stock</Typography.Text>
-        )}
+          {token && role === "Customer" && stock <= 0 && (
+            <span className="ml-auto text-sm text-muted">Out of stock</span>
+          )}
 
-        {!token && (
-          <Typography.Text type="secondary">
-            <Link to="/login">Log in</Link> as a Customer to add to cart
-          </Typography.Text>
-        )}
+          {!token && (
+            <span className="ml-auto text-sm text-muted">
+              <Link to="/login">Log in</Link> to add to cart
+            </span>
+          )}
+        </div>
       </div>
-    </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Delete this product?"
+        description="It will be soft-deleted and hidden from the store."
+        loading={deleting}
+        onConfirm={onDelete}
+        onCancel={() => setConfirmOpen(false)}
+      />
+    </article>
   );
 }

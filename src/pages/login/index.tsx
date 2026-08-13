@@ -1,11 +1,11 @@
-import { Alert, Button, Form, Input, Typography } from "antd";
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router";
+import { Alert } from "../../components/ui/Alert";
+import { Button } from "../../components/ui/Button";
+import { Field, Input } from "../../components/ui/Field";
 import { useAppDispatch } from "../../hooks/redux";
 import { setCredentials } from "../../redux/slices/authSlice";
 import { apiFetch } from "../../utils/api";
-
-type LoginValues = { email: string; password: string };
 
 export default function LoginPage() {
   const [error, setError] = useState("");
@@ -13,19 +13,22 @@ export default function LoginPage() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
-  const onFinish = async (values: LoginValues) => {
+  const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = new FormData(e.currentTarget);
+    const email = String(form.get("email") || "");
+    const password = String(form.get("password") || "");
+
     setError("");
     setLoading(true);
     try {
       const data = await apiFetch<{ token: string }>("/auth/login", {
         method: "POST",
-        body: JSON.stringify(values),
+        body: JSON.stringify({ email, password }),
       });
 
-      // Save token in Redux + localStorage; role comes from JWT payload
       dispatch(setCredentials({ token: data.token }));
 
-      // Read role from localStorage decode via Redux — check JWT quickly
       const payload = JSON.parse(
         atob(data.token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")),
       );
@@ -42,36 +45,36 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="max-w-md mx-auto bg-white border border-[#ddd4c8] p-6 rounded">
-      <Typography.Title level={2}>Log in</Typography.Title>
+    <div className="mx-auto max-w-md animate-fade-up">
+      <div className="rounded-3xl border border-line bg-cream p-7 shadow-card sm:p-8">
+        <p className="text-xs font-medium uppercase tracking-[0.2em] text-brass">Welcome back</p>
+        <h1 className="mt-2 font-display text-3xl text-ink">Log in</h1>
+        <p className="mt-2 text-sm text-muted">Sign in to shop, checkout, or manage listings.</p>
 
-      {error && (
-        <Alert className="mb-4" type="error" message={error} showIcon />
-      )}
+        {error && <Alert className="mt-5" type="error">{error}</Alert>}
 
-      <Form layout="vertical" onFinish={onFinish}>
-        <Form.Item
-          name="email"
-          label="Email"
-          rules={[{ required: true, type: "email" }]}
-        >
-          <Input />
-        </Form.Item>
-        <Form.Item
-          name="password"
-          label="Password"
-          rules={[{ required: true }]}
-        >
-          <Input.Password />
-        </Form.Item>
-        <Button type="primary" htmlType="submit" loading={loading} block>
-          Log in
-        </Button>
-      </Form>
+        <form onSubmit={onSubmit} className="mt-6 space-y-4">
+          <Field label="Email" htmlFor="email">
+            <Input id="email" name="email" type="email" required autoComplete="email" />
+          </Field>
+          <Field label="Password" htmlFor="password">
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              required
+              autoComplete="current-password"
+            />
+          </Field>
+          <Button type="submit" loading={loading} block className="mt-2">
+            Log in
+          </Button>
+        </form>
 
-      <Typography.Paragraph className="mt-4 mb-0!" type="secondary">
-        No account yet? <Link to="/register">Register</Link>
-      </Typography.Paragraph>
+        <p className="mt-5 text-sm text-muted">
+          No account yet? <Link to="/register">Register</Link>
+        </p>
+      </div>
     </div>
   );
 }

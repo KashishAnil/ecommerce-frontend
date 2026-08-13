@@ -1,20 +1,20 @@
-import { Alert, Collapse, Empty, Spin, Typography } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import ProductCard from "../../components/ProductCard";
+import { Alert } from "../../components/ui/Alert";
+import { EmptyState } from "../../components/ui/EmptyState";
+import { PageSpinner } from "../../components/ui/Spinner";
 import type { Category, Product } from "../../types";
 import { apiFetch } from "../../utils/api";
+import { cn } from "../../utils/cn";
 import { normalizeId } from "../../utils/ids";
 
-/**
- * Home browse: categories first; expand a category to see its products.
- * Product actions (details, cart qty, seller delete) live on each card.
- */
 export default function ProductsPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeKeys, setActiveKeys] = useState<string[]>([]);
+  const [openedDefault, setOpenedDefault] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -48,40 +48,20 @@ export default function ProductsPage() {
     return map;
   }, [products]);
 
-  const panels = useMemo(() => {
-    const items = categories.map((c) => {
-      const list = productsByCategory.get(c._id) || [];
-      return {
-        key: c._id,
-        label: `${c.categoryName} (${list.length})`,
-        children:
-          list.length === 0 ? (
-            <Empty description="No products in this category yet" />
-          ) : (
-            <div className="grid gap-3">
-              {list.map((p) => (
-                <ProductCard
-                  key={p._id}
-                  product={p}
-                  onDeleted={(id) =>
-                    setProducts((prev) => prev.filter((x) => x._id !== id))
-                  }
-                />
-              ))}
-            </div>
-          ),
-      };
-    });
+  const sections = useMemo(() => {
+    const items = categories.map((c) => ({
+      key: c._id,
+      label: c.categoryName,
+      products: productsByCategory.get(c._id) || [],
+    }));
 
     const orphan = productsByCategory.get("uncategorized") || [];
-    // Also catch products whose category id is not in the categories list
     const knownIds = new Set(categories.map((c) => c._id));
     const unmatched = products.filter((p) => {
       const id = normalizeId(p.category);
       return id && !knownIds.has(id) && id !== "uncategorized";
     });
     const extra = [...orphan, ...unmatched];
-    // dedupe
     const seen = new Set<string>();
     const uniqueExtra = extra.filter((p) => {
       if (seen.has(p._id)) return false;
@@ -92,53 +72,97 @@ export default function ProductsPage() {
     if (uniqueExtra.length > 0) {
       items.push({
         key: "uncategorized",
-        label: `Other / uncategorized (${uniqueExtra.length})`,
-        children: (
-          <div className="grid gap-3">
-            {uniqueExtra.map((p) => (
-              <ProductCard
-                key={p._id}
-                product={p}
-                onDeleted={(id) =>
-                  setProducts((prev) => prev.filter((x) => x._id !== id))
-                }
-              />
-            ))}
-          </div>
-        ),
+        label: "Other",
+        products: uniqueExtra,
       });
     }
 
     return items;
   }, [categories, productsByCategory, products]);
 
+  const toggle = (key: string) => {
+    setActiveKeys((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
+    );
+  };
+
+  useEffect(() => {
+    if (!loading && sections.length > 0 && !openedDefault) {
+      setActiveKeys([sections[0].key]);
+      setOpenedDefault(true);
+    }
+  }, [loading, sections, openedDefault]);
+
+  const removeProduct = (id: string) =>
+    setProducts((prev) => prev.filter((x) => x._id !== id));
+
   return (
-    <div>
-      <Typography.Title level={2}>Shop by category</Typography.Title>
-      <Typography.Paragraph type="secondary">
-        Expand a category to see its products. Open a product for full details,
-        or add to cart / delete right here when you have permission.
-      </Typography.Paragraph>
+    <div className="animate-fade-up">
+      <div className="mb-10 max-w-2xl">
+        <p className="text-xs font-medium uppercase tracking-[0.2em] text-brass">Catalog</p>
+        <h1 className="mt-2 font-display text-4xl tracking-tight text-ink sm:text-5xl">
+          Shop by category
+        </h1>
+        <p className="mt-3 text-muted">
+          Expand a category to browse pieces. Open a product for full details, or add to
+          cart when you have permission.
+        </p>
+      </div>
 
-      {error && <Alert type="error" message={error} showIcon className="mb-4" />}
-      {loading && (
-        <div className="py-10 text-center">
-          <Spin />
-        </div>
-      )}
+      {error && <Alert type="error" className="mb-6">{error}</Alert>}
+      {loading && <PageSpinner />}
       {!loading && !error && categories.length === 0 && products.length === 0 && (
-        <Empty description="No categories or products yet" />
+        <EmptyState>No categories or products yet.</EmptyState>
       )}
 
-      {!loading && panels.length > 0 && (
-        <Collapse
-          accordion={false}
-          activeKey={activeKeys}
-          onChange={(keys) =>
-            setActiveKeys(Array.isArray(keys) ? keys : [keys])
-          }
-          items={panels}
-        />
+      {!loading && sections.length > 0 && (
+        <div className="space-y-4">
+          {sections.map((section) => {
+            const open = activeKeys.includes(section.key);
+            return (
+              <section
+                key={section.key}
+                className="overflow-hidden rounded-2xl border border-line bg-cream/70"
+              >
+                <button
+                  type="button"
+                  onClick={() => toggle(section.key)}
+                  className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left"
+                  aria-expanded={open}
+                >
+                  <span className="font-display text-xl text-ink">
+                    {section.label}
+                    <span className="ml-2 font-sans text-sm text-muted">
+                      ({section.products.length})
+                    </span>
+                  </span>
+                  <span
+                    className={cn(
+                      "grid h-8 w-8 place-items-center rounded-full border border-line text-muted transition-transform",
+                      open && "rotate-180",
+                    )}
+                    aria-hidden
+                  >
+                    ⌄
+                  </span>
+                </button>
+                {open && (
+                  <div className="border-t border-line px-5 py-5">
+                    {section.products.length === 0 ? (
+                      <EmptyState>No products in this category yet.</EmptyState>
+                    ) : (
+                      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                        {section.products.map((p) => (
+                          <ProductCard key={p._id} product={p} onDeleted={removeProduct} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </section>
+            );
+          })}
+        </div>
       )}
     </div>
   );

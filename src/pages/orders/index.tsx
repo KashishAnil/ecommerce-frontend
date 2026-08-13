@@ -1,8 +1,21 @@
-import { Alert, Card, Empty, Spin, Typography } from "antd";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
+import { Alert } from "../../components/ui/Alert";
+import { EmptyState } from "../../components/ui/EmptyState";
+import { PageSpinner } from "../../components/ui/Spinner";
 import type { Order } from "../../types";
 import { apiFetch, formatMoney } from "../../utils/api";
+
+function statusTone(status?: string) {
+  const value = (status || "unknown").toLowerCase();
+  if (value.includes("paid") || value.includes("success")) {
+    return "bg-success-bg text-success";
+  }
+  if (value.includes("fail") || value.includes("cancel")) {
+    return "bg-error-bg text-error";
+  }
+  return "bg-paper text-muted";
+}
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -37,54 +50,57 @@ export default function OrdersPage() {
     };
   }, []);
 
-  if (loading) {
-    return (
-      <div className="py-10 text-center">
-        <Spin />
-      </div>
-    );
-  }
+  if (loading) return <PageSpinner />;
 
   return (
-    <div>
-      <Typography.Title level={2}>Your orders</Typography.Title>
-      {error && <Alert className="mb-4" type="error" message={error} showIcon />}
+    <div className="animate-fade-up">
+      <h1 className="font-display text-4xl tracking-tight text-ink">Your orders</h1>
+      {error && <Alert className="mt-4" type="error">{error}</Alert>}
 
       {!error && orders.length === 0 && (
-        <Empty
-          description={
-            <span>
-              No orders yet. <Link to="/">Start shopping</Link>
-            </span>
-          }
-        />
+        <div className="mt-8">
+          <EmptyState>
+            No orders yet. <Link to="/">Start shopping</Link>
+          </EmptyState>
+        </div>
       )}
 
-      <div className="grid gap-4">
+      <div className="mt-8 grid gap-4">
         {orders.map((o) => (
-          <Card key={o._id} size="small">
-            <Typography.Text strong>Order {o._id}</Typography.Text>
-            <div>
-              <Typography.Text type="secondary">
-                {o.createdAt ? new Date(o.createdAt).toLocaleString() : ""} ·
-                Payment: {o.paymentStatus || "unknown"}
-              </Typography.Text>
+          <article
+            key={o._id}
+            className="rounded-2xl border border-line bg-cream p-5 shadow-card"
+          >
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted">Order</p>
+                <p className="mt-0.5 font-medium text-ink break-all">{o._id}</p>
+              </div>
+              <span
+                className={`rounded-full px-2.5 py-1 text-xs font-medium capitalize ${statusTone(o.paymentStatus)}`}
+              >
+                {o.paymentStatus || "unknown"}
+              </span>
             </div>
-            <Typography.Paragraph className="mb-2! mt-2">
-              Total: {formatMoney(o.totalPrice)}
-            </Typography.Paragraph>
-            <Typography.Text type="secondary">
+            <p className="mt-2 text-sm text-muted">
+              {o.createdAt ? new Date(o.createdAt).toLocaleString() : ""}
+            </p>
+            <p className="mt-3 font-display text-xl text-ink">{formatMoney(o.totalPrice)}</p>
+            <p className="mt-1 text-sm text-muted">
               Ship to: {o.shippingAddress?.street}, {o.shippingAddress?.city},{" "}
               {o.shippingAddress?.country}
-            </Typography.Text>
-            <ul className="mt-2 mb-0 pl-5">
+            </p>
+            <ul className="mt-4 space-y-1 border-t border-line pt-3 text-sm text-ink">
               {(o.items || []).map((i, idx) => (
-                <li key={idx}>
-                  {i.name} × {i.quantity} — {formatMoney(i.priceAtPurchase)}
+                <li key={idx} className="flex justify-between gap-3">
+                  <span>
+                    {i.name} × {i.quantity}
+                  </span>
+                  <span className="text-muted">{formatMoney(i.priceAtPurchase)}</span>
                 </li>
               ))}
             </ul>
-          </Card>
+          </article>
         ))}
       </div>
     </div>

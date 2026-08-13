@@ -1,25 +1,23 @@
-import { Alert, Button, Form, Input, Typography } from "antd";
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
+import { Alert } from "../../components/ui/Alert";
+import { Button } from "../../components/ui/Button";
+import { Field, Input } from "../../components/ui/Field";
 import type { Order } from "../../types";
 import { apiFetch } from "../../utils/api";
 
-/**
- * Checkout flow:
- * 1) POST /orders with shipping address
- * 2) POST /payments/checkout/:orderId → { checkoutUrl }
- * 3) Redirect to Stripe immediately (no "success" screen yet)
- *
- * "Order successful" only appears on /success after Stripe payment.
- */
 export default function CheckoutPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const onFinish = async (values: {
-    street: string;
-    city: string;
-    country: string;
-  }) => {
+  const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = new FormData(e.currentTarget);
+    const values = {
+      street: String(form.get("street") || ""),
+      city: String(form.get("city") || ""),
+      country: String(form.get("country") || ""),
+    };
+
     setError("");
     setLoading(true);
     try {
@@ -37,7 +35,6 @@ export default function CheckoutPage() {
         throw new Error("No checkout URL returned from the server.");
       }
 
-      // Leave the app for Stripe — success UI comes after payment on /success
       window.location.href = payment.checkoutUrl;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Checkout failed");
@@ -46,29 +43,32 @@ export default function CheckoutPage() {
   };
 
   return (
-    <div className="max-w-md mx-auto bg-white border border-[#ddd4c8] p-6 rounded">
-      <Typography.Title level={2}>Checkout</Typography.Title>
-      <Typography.Paragraph type="secondary">
-        Enter your shipping details. You’ll be redirected to Stripe to pay. The
-        order is confirmed only after payment succeeds.
-      </Typography.Paragraph>
+    <div className="mx-auto max-w-md animate-fade-up">
+      <div className="rounded-3xl border border-line bg-cream p-7 shadow-card sm:p-8">
+        <p className="text-xs font-medium uppercase tracking-[0.2em] text-brass">Almost there</p>
+        <h1 className="mt-2 font-display text-3xl text-ink">Checkout</h1>
+        <p className="mt-2 text-sm text-muted">
+          Enter your shipping details. You’ll be redirected to Stripe to pay. The order is
+          confirmed only after payment succeeds.
+        </p>
 
-      {error && <Alert className="mb-4" type="error" message={error} showIcon />}
+        {error && <Alert className="mt-5" type="error">{error}</Alert>}
 
-      <Form layout="vertical" onFinish={onFinish}>
-        <Form.Item name="street" label="Street" rules={[{ required: true }]}>
-          <Input />
-        </Form.Item>
-        <Form.Item name="city" label="City" rules={[{ required: true }]}>
-          <Input />
-        </Form.Item>
-        <Form.Item name="country" label="Country" rules={[{ required: true }]}>
-          <Input />
-        </Form.Item>
-        <Button type="primary" htmlType="submit" loading={loading} block>
-          {loading ? "Redirecting to payment…" : "Place order & pay"}
-        </Button>
-      </Form>
+        <form onSubmit={onSubmit} className="mt-6 space-y-4">
+          <Field label="Street" htmlFor="street">
+            <Input id="street" name="street" required autoComplete="address-line1" />
+          </Field>
+          <Field label="City" htmlFor="city">
+            <Input id="city" name="city" required autoComplete="address-level2" />
+          </Field>
+          <Field label="Country" htmlFor="country">
+            <Input id="country" name="country" required autoComplete="country-name" />
+          </Field>
+          <Button type="submit" loading={loading} block className="mt-2">
+            {loading ? "Redirecting to payment…" : "Place order & pay"}
+          </Button>
+        </form>
+      </div>
     </div>
   );
 }
