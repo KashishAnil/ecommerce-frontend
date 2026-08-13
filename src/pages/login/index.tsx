@@ -1,31 +1,33 @@
-import { Alert, Button, Form, Input, Typography } from "antd";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
+import Alert from "../../components/ui/Alert";
+import Button from "../../components/ui/Button";
+import { Input } from "../../components/ui/Input";
+import { BRAND_NAME } from "../../constants/brand";
 import { useAppDispatch } from "../../hooks/redux";
 import { setCredentials } from "../../redux/slices/authSlice";
 import { apiFetch } from "../../utils/api";
 
-type LoginValues = { email: string; password: string };
-
 export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
-  const onFinish = async (values: LoginValues) => {
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setError("");
     setLoading(true);
     try {
       const data = await apiFetch<{ token: string }>("/auth/login", {
         method: "POST",
-        body: JSON.stringify(values),
+        body: JSON.stringify({ email, password }),
       });
 
-      // Save token in Redux + localStorage; role comes from JWT payload
       dispatch(setCredentials({ token: data.token }));
 
-      // Read role from localStorage decode via Redux — check JWT quickly
       const payload = JSON.parse(
         atob(data.token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")),
       );
@@ -42,36 +44,44 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="max-w-md mx-auto bg-white border border-[#ddd4c8] p-6 rounded">
-      <Typography.Title level={2}>Log in</Typography.Title>
+    <div className="mx-auto w-full max-w-xl rounded-2xl border border-[var(--line)] bg-white p-6 shadow-[var(--shadow)] sm:p-8">
+      <p className="m-0 font-display text-sm font-semibold tracking-wide text-[var(--brand)]">
+        {BRAND_NAME}
+      </p>
+      <h1 className="font-display m-0 mt-1 text-3xl font-semibold">Welcome back</h1>
+      <p className="mt-2 text-sm text-[var(--muted)]">
+        Sign in to continue shopping or manage your store.
+      </p>
 
-      {error && (
-        <Alert className="mb-4" type="error" message={error} showIcon />
-      )}
+      {error && <Alert className="mt-4" type="error" message={error} />}
 
-      <Form layout="vertical" onFinish={onFinish}>
-        <Form.Item
-          name="email"
+      <form onSubmit={onSubmit} className="mt-6 space-y-4">
+        <Input
           label="Email"
-          rules={[{ required: true, type: "email" }]}
-        >
-          <Input />
-        </Form.Item>
-        <Form.Item
-          name="password"
+          name="email"
+          type="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          autoComplete="email"
+        />
+        <Input
           label="Password"
-          rules={[{ required: true }]}
-        >
-          <Input.Password />
-        </Form.Item>
-        <Button type="primary" htmlType="submit" loading={loading} block>
+          name="password"
+          type="password"
+          required
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          autoComplete="current-password"
+        />
+        <Button type="submit" loading={loading} block>
           Log in
         </Button>
-      </Form>
+      </form>
 
-      <Typography.Paragraph className="mt-4 mb-0!" type="secondary">
+      <p className="mt-5 mb-0 text-sm text-[var(--muted)]">
         No account yet? <Link to="/register">Register</Link>
-      </Typography.Paragraph>
+      </p>
     </div>
   );
 }

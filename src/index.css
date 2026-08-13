@@ -1,28 +1,98 @@
 @import "tailwindcss";
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap");
 
 :root {
-  font-family: system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
+  --ink: #14201b;
+  --ink-soft: #3d4f46;
+  --muted: #6b7c73;
+  --surface: #ffffff;
+  --surface-2: #f3f7f4;
+  --line: #d7e3db;
+  --brand: #1a6b4a;
+  --brand-deep: #0f3d2c;
+  --brand-soft: #e8f5ee;
+  --accent: #c45c26;
+  --danger: #b42318;
+  --danger-soft: #fef3f2;
+  --success: #067647;
+  --success-soft: #ecfdf3;
+  --shadow: 0 12px 40px rgba(20, 32, 27, 0.08);
+  --radius: 14px;
+  --font-display: "Fraunces", Georgia, serif;
+  --font-body: "Plus Jakarta Sans", system-ui, sans-serif;
+
+  font-family: var(--font-body);
+  line-height: 1.55;
   font-weight: 400;
-  color: #1a1a1a;
-  background-color: #f7f3ee;
+  color: var(--ink);
+  background-color: var(--surface-2);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background-color: #f7f3ee;
+  background:
+    radial-gradient(1200px 600px at 10% -10%, #dceee4 0%, transparent 55%),
+    radial-gradient(900px 500px at 100% 0%, #f0e6dc 0%, transparent 45%),
+    linear-gradient(180deg, #f7faf8 0%, #eef3f0 100%);
+  color: var(--ink);
 }
 
 a {
-  color: #1f4d3a;
+  color: var(--brand);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition: color 0.15s ease;
+}
+
+a:hover {
+  color: var(--brand-deep);
 }
 
 #root {
   min-height: 100vh;
+}
+
+h1,
+h2,
+h3,
+h4,
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.45s ease both;
+}
+
+.animate-spin-slow {
+  animation: spin 0.8s linear infinite;
 }

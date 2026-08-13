@@ -1,14 +1,7 @@
-import {
-  Alert,
-  Button,
-  Divider,
-  Form,
-  Input,
-  InputNumber,
-  Select,
-  Typography,
-} from "antd";
 import { useEffect, useState } from "react";
+import Alert from "../../components/ui/Alert";
+import Button from "../../components/ui/Button";
+import { Input, NumberInput, Select, TextArea } from "../../components/ui/Input";
 import { useAppSelector } from "../../hooks/redux";
 import type { Category, Product } from "../../types";
 import { apiFetch } from "../../utils/api";
@@ -21,6 +14,15 @@ export default function SellerProductPage() {
   const [success, setSuccess] = useState("");
   const [loadingProduct, setLoadingProduct] = useState(false);
   const [loadingCategory, setLoadingCategory] = useState(false);
+  const [categoryName, setCategoryName] = useState("");
+  const [product, setProduct] = useState({
+    productName: "",
+    description: "",
+    price: "",
+    quantityAvailable: "",
+    imageURL: "",
+    category: "",
+  });
 
   const loadCategories = async () => {
     try {
@@ -35,23 +37,32 @@ export default function SellerProductPage() {
     loadCategories();
   }, []);
 
-  const onCreateProduct = async (values: {
-    productName: string;
-    description: string;
-    price: number;
-    quantityAvailable: number;
-    imageURL: string;
-    category: string;
-  }) => {
+  const onCreateProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
     setError("");
     setSuccess("");
     setLoadingProduct(true);
     try {
       const created = await apiFetch<Product>("/products", {
         method: "POST",
-        body: JSON.stringify(values),
+        body: JSON.stringify({
+          productName: product.productName,
+          description: product.description,
+          price: Number(product.price),
+          quantityAvailable: Number(product.quantityAvailable),
+          imageURL: product.imageURL,
+          category: product.category,
+        }),
       });
       setSuccess(`Product created: ${created.productName}`);
+      setProduct({
+        productName: "",
+        description: "",
+        price: "",
+        quantityAvailable: "",
+        imageURL: "",
+        category: "",
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create product");
     } finally {
@@ -59,20 +70,21 @@ export default function SellerProductPage() {
     }
   };
 
-  const onCreateCategory = async (values: { categoryName: string }) => {
+  const onCreateCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
     setError("");
     setSuccess("");
     setLoadingCategory(true);
     try {
-      // Category model requires createdBy — send logged-in user id from JWT
       await apiFetch("/categories", {
         method: "POST",
         body: JSON.stringify({
-          categoryName: values.categoryName,
+          categoryName,
           createdBy: userId,
         }),
       });
       setSuccess("Category created. You can select it above.");
+      setCategoryName("");
       await loadCategories();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create category");
@@ -82,89 +94,114 @@ export default function SellerProductPage() {
   };
 
   return (
-    <div className="bg-white border border-[#ddd4c8] p-6 rounded">
-      <Typography.Title level={2}>Add a new product</Typography.Title>
-      <Typography.Paragraph type="secondary">
+    <div className="rounded-2xl border border-[var(--line)] bg-white p-6 shadow-[var(--shadow)] sm:p-8">
+      <h1 className="font-display m-0 text-3xl font-semibold">Add a new product</h1>
+      <p className="mt-2 text-sm text-[var(--muted)]">
         Sellers only. Your user id is attached automatically by the backend when
         creating a product.
-      </Typography.Paragraph>
+      </p>
 
-      {error && <Alert className="mb-4" type="error" message={error} showIcon />}
-      {success && (
-        <Alert className="mb-4" type="success" message={success} showIcon />
-      )}
+      {error && <Alert className="mt-4" type="error" message={error} />}
+      {success && <Alert className="mt-4" type="success" message={success} />}
 
-      <Form layout="vertical" onFinish={onCreateProduct} className="max-w-md">
-        <Form.Item
-          name="productName"
+      <form onSubmit={onCreateProduct} className="mt-6 max-w-3xl space-y-4">
+        <Input
           label="Product name"
-          rules={[{ required: true }]}
-        >
-          <Input />
-        </Form.Item>
-        <Form.Item
-          name="description"
+          name="productName"
+          required
+          value={product.productName}
+          onChange={(e) =>
+            setProduct((p) => ({ ...p, productName: e.target.value }))
+          }
+        />
+        <TextArea
           label="Description"
-          rules={[{ required: true }]}
-        >
-          <Input.TextArea rows={3} />
-        </Form.Item>
-        <Form.Item name="price" label="Price" rules={[{ required: true }]}>
-          <InputNumber min={0} step={0.01} className="w-full!" />
-        </Form.Item>
-        <Form.Item
-          name="quantityAvailable"
+          name="description"
+          required
+          rows={3}
+          value={product.description}
+          onChange={(e) =>
+            setProduct((p) => ({ ...p, description: e.target.value }))
+          }
+        />
+        <NumberInput
+          label="Price"
+          name="price"
+          required
+          min={0}
+          step={0.01}
+          value={product.price}
+          onChange={(e) => setProduct((p) => ({ ...p, price: e.target.value }))}
+        />
+        <NumberInput
           label="Quantity available"
-          rules={[{ required: true }]}
-        >
-          <InputNumber min={0} step={1} className="w-full!" />
-        </Form.Item>
-        <Form.Item
-          name="imageURL"
+          name="quantityAvailable"
+          required
+          min={0}
+          step={1}
+          value={product.quantityAvailable}
+          onChange={(e) =>
+            setProduct((p) => ({ ...p, quantityAvailable: e.target.value }))
+          }
+        />
+        <Input
           label="Image URL"
-          rules={[{ required: true, type: "url" }]}
-        >
-          <Input placeholder="https://…" />
-        </Form.Item>
-        <Form.Item
-          name="category"
+          name="imageURL"
+          type="url"
+          required
+          placeholder="https://…"
+          value={product.imageURL}
+          onChange={(e) =>
+            setProduct((p) => ({ ...p, imageURL: e.target.value }))
+          }
+        />
+        <Select
           label="Category"
-          rules={[{ required: true, message: "Select or create a category" }]}
-        >
-          <Select
-            placeholder={
-              categories.length ? "Select a category" : "No categories yet"
-            }
-            options={categories.map((c) => ({
-              value: c._id,
-              label: c.categoryName,
-            }))}
-          />
-        </Form.Item>
-        <Button type="primary" htmlType="submit" loading={loadingProduct}>
+          name="category"
+          required
+          placeholder={
+            categories.length ? "Select a category" : "No categories yet"
+          }
+          value={product.category}
+          onChange={(e) =>
+            setProduct((p) => ({ ...p, category: e.target.value }))
+          }
+          options={categories.map((c) => ({
+            value: c._id,
+            label: c.categoryName,
+          }))}
+        />
+        <Button type="submit" loading={loadingProduct}>
           Create product
         </Button>
-      </Form>
+      </form>
 
-      <Divider />
+      <hr className="my-8 border-[var(--line)]" />
 
-      <Typography.Title level={4}>Create a category (optional)</Typography.Title>
-      <Typography.Paragraph type="secondary">
+      <h2 className="font-display m-0 text-xl font-semibold">
+        Create a category (optional)
+      </h2>
+      <p className="mt-2 text-sm text-[var(--muted)]">
         If the list above is empty, create a category first.
-      </Typography.Paragraph>
-      <Form layout="inline" onFinish={onCreateCategory}>
-        <Form.Item
-          name="categoryName"
-          rules={[{ required: true, message: "Enter a name" }]}
-        >
-          <Input placeholder="Category name" />
-        </Form.Item>
-        <Form.Item>
-          <Button htmlType="submit" loading={loadingCategory}>
-            Create category
-          </Button>
-        </Form.Item>
-      </Form>
+      </p>
+      <form
+        onSubmit={onCreateCategory}
+        className="mt-4 flex max-w-3xl flex-wrap items-end gap-2"
+      >
+        <div className="min-w-[200px] flex-1">
+          <Input
+            label="Category name"
+            name="categoryName"
+            required
+            placeholder="Category name"
+            value={categoryName}
+            onChange={(e) => setCategoryName(e.target.value)}
+          />
+        </div>
+        <Button type="submit" variant="secondary" loading={loadingCategory}>
+          Create category
+        </Button>
+      </form>
     </div>
   );
 }

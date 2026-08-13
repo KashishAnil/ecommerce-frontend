@@ -1,5 +1,7 @@
-import { Alert, Button, Form, Input, Typography } from "antd";
 import { useState } from "react";
+import Alert from "../../components/ui/Alert";
+import Button from "../../components/ui/Button";
+import { Input } from "../../components/ui/Input";
 import type { Order } from "../../types";
 import { apiFetch } from "../../utils/api";
 
@@ -7,25 +9,25 @@ import { apiFetch } from "../../utils/api";
  * Checkout flow:
  * 1) POST /orders with shipping address
  * 2) POST /payments/checkout/:orderId → { checkoutUrl }
- * 3) Redirect to Stripe immediately (no "success" screen yet)
- *
- * "Order successful" only appears on /success after Stripe payment.
+ * 3) Redirect to Stripe immediately
  */
 export default function CheckoutPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [street, setStreet] = useState("");
+  const [city, setCity] = useState("");
+  const [country, setCountry] = useState("");
 
-  const onFinish = async (values: {
-    street: string;
-    city: string;
-    country: string;
-  }) => {
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setError("");
     setLoading(true);
     try {
       const order = await apiFetch<Order>("/orders", {
         method: "POST",
-        body: JSON.stringify({ shippingAddress: values }),
+        body: JSON.stringify({
+          shippingAddress: { street, city, country },
+        }),
       });
 
       const payment = await apiFetch<{ checkoutUrl: string }>(
@@ -37,7 +39,6 @@ export default function CheckoutPage() {
         throw new Error("No checkout URL returned from the server.");
       }
 
-      // Leave the app for Stripe — success UI comes after payment on /success
       window.location.href = payment.checkoutUrl;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Checkout failed");
@@ -46,29 +47,41 @@ export default function CheckoutPage() {
   };
 
   return (
-    <div className="max-w-md mx-auto bg-white border border-[#ddd4c8] p-6 rounded">
-      <Typography.Title level={2}>Checkout</Typography.Title>
-      <Typography.Paragraph type="secondary">
-        Enter your shipping details. You’ll be redirected to Stripe to pay. The
-        order is confirmed only after payment succeeds.
-      </Typography.Paragraph>
+    <div className="mx-auto w-full max-w-2xl rounded-2xl border border-[var(--line)] bg-white p-6 shadow-[var(--shadow)] sm:p-8">
+      <h1 className="font-display m-0 text-3xl font-semibold">Checkout</h1>
+      <p className="mt-2 text-sm text-[var(--muted)]">
+        Enter your shipping details. You&apos;ll be redirected to Stripe to pay.
+        The order is confirmed only after payment succeeds.
+      </p>
 
-      {error && <Alert className="mb-4" type="error" message={error} showIcon />}
+      {error && <Alert className="mt-4" type="error" message={error} />}
 
-      <Form layout="vertical" onFinish={onFinish}>
-        <Form.Item name="street" label="Street" rules={[{ required: true }]}>
-          <Input />
-        </Form.Item>
-        <Form.Item name="city" label="City" rules={[{ required: true }]}>
-          <Input />
-        </Form.Item>
-        <Form.Item name="country" label="Country" rules={[{ required: true }]}>
-          <Input />
-        </Form.Item>
-        <Button type="primary" htmlType="submit" loading={loading} block>
+      <form onSubmit={onSubmit} className="mt-6 space-y-4">
+        <Input
+          label="Street"
+          name="street"
+          required
+          value={street}
+          onChange={(e) => setStreet(e.target.value)}
+        />
+        <Input
+          label="City"
+          name="city"
+          required
+          value={city}
+          onChange={(e) => setCity(e.target.value)}
+        />
+        <Input
+          label="Country"
+          name="country"
+          required
+          value={country}
+          onChange={(e) => setCountry(e.target.value)}
+        />
+        <Button type="submit" loading={loading} block>
           {loading ? "Redirecting to payment…" : "Place order & pay"}
         </Button>
-      </Form>
+      </form>
     </div>
   );
 }

@@ -1,14 +1,10 @@
-import {
-  Alert,
-  Button,
-  Form,
-  InputNumber,
-  Popconfirm,
-  Spin,
-  Typography,
-} from "antd";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
+import Alert from "../../components/ui/Alert";
+import Button from "../../components/ui/Button";
+import ConfirmButton from "../../components/ui/ConfirmButton";
+import { NumberInput } from "../../components/ui/Input";
+import Spinner from "../../components/ui/Spinner";
 import { useAppSelector } from "../../hooks/redux";
 import type { Product } from "../../types";
 import { apiFetch, formatMoney } from "../../utils/api";
@@ -65,7 +61,8 @@ export default function ProductDetailPage() {
     product.isActive !== false &&
     normalizeId(product.seller) === normalizeId(userId);
 
-  const onAdd = async () => {
+  const onAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!product) return;
     setError("");
     setSuccess("");
@@ -101,92 +98,91 @@ export default function ProductDetailPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="py-10 text-center">
-        <Spin />
-      </div>
-    );
-  }
+  if (loading) return <Spinner />;
 
   return (
     <div>
-      <Link to="/">← Back to categories</Link>
+      <Link to="/" className="text-sm font-medium no-underline">
+        ← Back to categories
+      </Link>
 
-      {error && <Alert className="my-4" type="error" message={error} showIcon />}
-      {success && (
-        <Alert className="my-4" type="success" message={success} showIcon />
-      )}
+      {error && <Alert className="mt-4" type="error" message={error} />}
+      {success && <Alert className="mt-4" type="success" message={success} />}
 
       {!product && !error && (
-        <Typography.Paragraph>Product not found.</Typography.Paragraph>
+        <p className="mt-6 text-[var(--muted)]">Product not found.</p>
       )}
 
       {product && (
-        <div className="mt-4 bg-white border border-[#ddd4c8] p-6 rounded">
-          <div className="flex flex-wrap items-start justify-between gap-2">
-            <Typography.Title level={2} className="mt-0!">
-              {product.productName}
-            </Typography.Title>
-            {canDeleteProduct && (
-              <Popconfirm
-                title="Delete this product?"
-                description="It will be soft-deleted (hidden from the store)."
-                onConfirm={onDeleteProduct}
-                okText="Delete"
-                okButtonProps={{ danger: true }}
-              >
-                <Button danger loading={deleting}>
-                  Delete product
-                </Button>
-              </Popconfirm>
-            )}
-          </div>
-
+        <div className="mt-5 overflow-hidden rounded-2xl border border-[var(--line)] bg-white shadow-[var(--shadow)]">
           {product.imageURL && (
-            <img
-              src={product.imageURL}
-              alt={product.productName}
-              className="max-w-xs w-full mb-4 bg-neutral-100"
-            />
+            <div className="aspect-[21/9] max-h-80 overflow-hidden bg-[var(--surface-2)]">
+              <img
+                src={product.imageURL}
+                alt={product.productName}
+                className="h-full w-full object-cover"
+              />
+            </div>
           )}
-          <Typography.Text type="secondary">
-            {formatMoney(product.price)} · Stock: {product.quantityAvailable ?? 0}
-          </Typography.Text>
-          <Typography.Paragraph className="mt-3 whitespace-pre-wrap">
-            {product.description}
-          </Typography.Paragraph>
 
-          {canAdd ? (
-            <Form layout="inline" onFinish={onAdd} className="mt-4 gap-2!">
-              <Form.Item label="Quantity">
-                <InputNumber
+          <div className="p-5 sm:p-7">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <h1 className="font-display m-0 text-3xl font-semibold sm:text-4xl">
+                {product.productName}
+              </h1>
+              {canDeleteProduct && (
+                <ConfirmButton
+                  title="Delete this product?"
+                  description="It will be soft-deleted (hidden from the store)."
+                  confirmLabel="Delete"
+                  loading={deleting}
+                  onConfirm={onDeleteProduct}
+                >
+                  <Button variant="danger">Delete product</Button>
+                </ConfirmButton>
+              )}
+            </div>
+
+            <p className="mt-2 text-lg font-semibold text-[var(--brand)]">
+              {formatMoney(product.price)}
+              <span className="ml-2 text-sm font-normal text-[var(--muted)]">
+                Stock: {product.quantityAvailable ?? 0}
+              </span>
+            </p>
+
+            <p className="mt-4 whitespace-pre-wrap text-[var(--ink-soft)]">
+              {product.description}
+            </p>
+
+            {canAdd ? (
+              <form onSubmit={onAdd} className="mt-6 flex flex-wrap items-end gap-3">
+                <NumberInput
+                  label="Quantity"
                   min={1}
                   max={product.quantityAvailable}
                   value={qty}
-                  onChange={(v) => setQty(Number(v) || 1)}
+                  onValueChange={(v) => setQty(Number(v) || 1)}
+                  className="w-24"
                 />
-              </Form.Item>
-              <Form.Item>
-                <Button type="primary" htmlType="submit" loading={adding}>
+                <Button type="submit" loading={adding}>
                   Add to cart
                 </Button>
-              </Form.Item>
-            </Form>
-          ) : token && role === "Customer" ? (
-            <Typography.Paragraph type="secondary" className="mt-3">
-              Out of stock. Manage quantities on your{" "}
-              <Link to="/cart">cart</Link>.
-            </Typography.Paragraph>
-          ) : !token ? (
-            <Typography.Paragraph type="secondary" className="mt-3">
-              Log in as a Customer to add this to your cart.
-            </Typography.Paragraph>
-          ) : role === "Seller" && !canDeleteProduct ? (
-            <Typography.Paragraph type="secondary" className="mt-3">
-              You can only delete products you created.
-            </Typography.Paragraph>
-          ) : null}
+              </form>
+            ) : token && role === "Customer" ? (
+              <p className="mt-4 text-sm text-[var(--muted)]">
+                Out of stock. Manage quantities on your{" "}
+                <Link to="/cart">cart</Link>.
+              </p>
+            ) : !token ? (
+              <p className="mt-4 text-sm text-[var(--muted)]">
+                Log in as a Customer to add this to your cart.
+              </p>
+            ) : role === "Seller" && !canDeleteProduct ? (
+              <p className="mt-4 text-sm text-[var(--muted)]">
+                You can only delete products you created.
+              </p>
+            ) : null}
+          </div>
         </div>
       )}
     </div>

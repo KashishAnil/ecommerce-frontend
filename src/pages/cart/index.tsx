@@ -1,6 +1,10 @@
-import { Alert, Button, Empty, InputNumber, Spin, Typography } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router";
+import Alert from "../../components/ui/Alert";
+import Button from "../../components/ui/Button";
+import Empty from "../../components/ui/Empty";
+import { NumberInput } from "../../components/ui/Input";
+import Spinner from "../../components/ui/Spinner";
 import type { CartItem, CartResponse, Product } from "../../types";
 import { apiFetch, formatMoney } from "../../utils/api";
 
@@ -24,7 +28,6 @@ export default function CartPage() {
       setItems(data.cartExists?.items || []);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to load cart";
-      // Backend returns an error when no cart exists yet
       if (/empty/i.test(msg)) {
         setItems([]);
       } else {
@@ -75,55 +78,52 @@ export default function CartPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="py-10 text-center">
-        <Spin />
-      </div>
-    );
-  }
+  if (loading) return <Spinner />;
 
   return (
     <div>
-      <Typography.Title level={2}>Your cart</Typography.Title>
-      {error && <Alert className="mb-4" type="error" message={error} showIcon />}
+      <h1 className="font-display m-0 text-3xl font-semibold sm:text-4xl">
+        Your cart
+      </h1>
+      {error && <Alert className="mt-4" type="error" message={error} />}
 
       {items.length === 0 ? (
-        <Empty
-          description={
-            <span>
-              Your cart is empty. <Link to="/">Browse products</Link>
-            </span>
-          }
-        />
+        <div className="mt-6">
+          <Empty
+            description={
+              <span>
+                Your cart is empty. <Link to="/">Browse products</Link>
+              </span>
+            }
+          />
+        </div>
       ) : (
-        <div className="bg-white border border-[#ddd4c8] p-4 rounded">
+        <div className="mt-6 overflow-hidden rounded-2xl border border-[var(--line)] bg-white shadow-[var(--shadow)]">
           {items.map((item) => {
             const p = asProduct(item);
             const id = p?._id || String(item.product);
             return (
               <div
                 key={id}
-                className="flex flex-wrap items-center justify-between gap-3 border-b border-[#eee] py-4 last:border-0"
+                className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--line)] px-4 py-4 last:border-0 sm:px-5"
               >
                 <div>
-                  <Typography.Text strong>
+                  <p className="m-0 font-semibold text-[var(--ink)]">
                     {p?.productName || "Product"}
-                  </Typography.Text>
-                  <div>
-                    <Typography.Text type="secondary">
-                      {formatMoney(p?.price)} each · Line:{" "}
-                      {formatMoney(lineTotal(item))}
-                    </Typography.Text>
-                  </div>
+                  </p>
+                  <p className="m-0 mt-1 text-sm text-[var(--muted)]">
+                    {formatMoney(p?.price)} each · Line:{" "}
+                    {formatMoney(lineTotal(item))}
+                  </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <InputNumber
+                  <NumberInput
                     min={1}
                     value={item.quantity}
                     disabled={busyId === id}
-                    onChange={(v) => {
-                      if (v != null) {
+                    className="w-20"
+                    onValueChange={(v) => {
+                      if (!Number.isNaN(v)) {
                         setItems((prev) =>
                           prev.map((it) =>
                             (asProduct(it)?._id || String(it.product)) === id
@@ -135,13 +135,14 @@ export default function CartPage() {
                     }}
                   />
                   <Button
+                    variant="secondary"
                     loading={busyId === id}
                     onClick={() => updateQty(id, item.quantity)}
                   >
                     Update
                   </Button>
                   <Button
-                    danger
+                    variant="danger"
                     loading={busyId === id}
                     onClick={() => removeItem(id)}
                   >
@@ -152,12 +153,14 @@ export default function CartPage() {
             );
           })}
 
-          <Typography.Title level={4} className="mt-4">
-            Cart total: {formatMoney(total)}
-          </Typography.Title>
-          <Link to="/checkout">
-            <Button type="primary">Go to checkout</Button>
-          </Link>
+          <div className="bg-[var(--surface-2)] px-4 py-5 sm:px-5">
+            <p className="font-display m-0 text-xl font-semibold">
+              Cart total: {formatMoney(total)}
+            </p>
+            <Link to="/checkout" className="mt-3 inline-block no-underline">
+              <Button>Go to checkout</Button>
+            </Link>
+          </div>
         </div>
       )}
     </div>

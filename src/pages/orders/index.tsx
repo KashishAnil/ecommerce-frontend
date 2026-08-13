@@ -1,6 +1,8 @@
-import { Alert, Card, Empty, Spin, Typography } from "antd";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
+import Alert from "../../components/ui/Alert";
+import Empty from "../../components/ui/Empty";
+import Spinner from "../../components/ui/Spinner";
 import type { Order } from "../../types";
 import { apiFetch, formatMoney } from "../../utils/api";
 
@@ -37,54 +39,57 @@ export default function OrdersPage() {
     };
   }, []);
 
-  if (loading) {
-    return (
-      <div className="py-10 text-center">
-        <Spin />
-      </div>
-    );
-  }
+  if (loading) return <Spinner />;
 
   return (
     <div>
-      <Typography.Title level={2}>Your orders</Typography.Title>
-      {error && <Alert className="mb-4" type="error" message={error} showIcon />}
+      <h1 className="font-display m-0 text-3xl font-semibold sm:text-4xl">
+        Your orders
+      </h1>
+      {error && <Alert className="mt-4" type="error" message={error} />}
 
       {!error && orders.length === 0 && (
-        <Empty
-          description={
-            <span>
-              No orders yet. <Link to="/">Start shopping</Link>
-            </span>
-          }
-        />
+        <div className="mt-6">
+          <Empty
+            description={
+              <span>
+                No orders yet. <Link to="/">Start shopping</Link>
+              </span>
+            }
+          />
+        </div>
       )}
 
-      <div className="grid gap-4">
+      <div className="mt-6 grid gap-4 lg:grid-cols-2">
         {orders.map((o) => (
-          <Card key={o._id} size="small">
-            <Typography.Text strong>Order {o._id}</Typography.Text>
-            <div>
-              <Typography.Text type="secondary">
-                {o.createdAt ? new Date(o.createdAt).toLocaleString() : ""} ·
-                Payment: {o.paymentStatus || "unknown"}
-              </Typography.Text>
+          <article
+            key={o._id}
+            className="rounded-2xl border border-[var(--line)] bg-white p-5 shadow-[var(--shadow)]"
+          >
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <p className="m-0 font-semibold">Order {o._id}</p>
+              <span className="rounded-full bg-[var(--brand-soft)] px-2.5 py-0.5 text-xs font-medium text-[var(--brand-deep)]">
+                {o.paymentStatus || "unknown"}
+              </span>
             </div>
-            <Typography.Paragraph className="mb-2! mt-2">
+            <p className="m-0 mt-1 text-sm text-[var(--muted)]">
+              {o.createdAt ? new Date(o.createdAt).toLocaleString() : ""}
+            </p>
+            <p className="mt-3 mb-1 font-display text-lg font-semibold">
               Total: {formatMoney(o.totalPrice)}
-            </Typography.Paragraph>
-            <Typography.Text type="secondary">
+            </p>
+            <p className="m-0 text-sm text-[var(--muted)]">
               Ship to: {o.shippingAddress?.street}, {o.shippingAddress?.city},{" "}
               {o.shippingAddress?.country}
-            </Typography.Text>
-            <ul className="mt-2 mb-0 pl-5">
+            </p>
+            <ul className="mt-3 mb-0 space-y-1 pl-5 text-sm text-[var(--ink-soft)]">
               {(o.items || []).map((i, idx) => (
                 <li key={idx}>
                   {i.name} × {i.quantity} — {formatMoney(i.priceAtPurchase)}
                 </li>
               ))}
             </ul>
-          </Card>
+          </article>
         ))}
       </div>
     </div>
