@@ -5,6 +5,7 @@ import { Button } from "../../components/ui/Button";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { QuantityInput } from "../../components/ui/QuantityInput";
 import { PageSpinner } from "../../components/ui/Spinner";
+import { notifyCartUpdated, useShop } from "../../context/ShopContext";
 import { useAppSelector } from "../../hooks/redux";
 import type { Product } from "../../types";
 import { apiFetch, formatMoney } from "../../utils/api";
@@ -13,6 +14,7 @@ import { normalizeId } from "../../utils/ids";
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { token, role, userId } = useAppSelector((s) => s.auth);
+  const { setCartOpen } = useShop();
   const navigate = useNavigate();
 
   const [product, setProduct] = useState<Product | null>(null);
@@ -69,6 +71,8 @@ export default function ProductDetailPage() {
         body: JSON.stringify({ productId: product._id, quantity: qty }),
       });
       setSuccess("Added to cart.");
+      notifyCartUpdated();
+      setCartOpen(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not add to cart");
     } finally {
@@ -96,8 +100,8 @@ export default function ProductDetailPage() {
 
   return (
     <div className="animate-fade-up">
-      <Link to="/" className="text-sm font-medium no-underline hover:underline">
-        ← Back to categories
+      <Link to="/" className="text-sm font-medium text-ink no-underline hover:text-forest">
+        ← Back
       </Link>
 
       {error && <Alert className="my-4" type="error">{error}</Alert>}

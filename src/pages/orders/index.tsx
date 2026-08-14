@@ -54,7 +54,7 @@ export default function OrdersPage() {
 
   return (
     <div className="animate-fade-up">
-      <h1 className="font-display text-4xl tracking-tight text-ink">Your orders</h1>
+      <h1 className="font-display text-4xl tracking-tight text-ink">Orders</h1>
       {error && <Alert className="mt-4" type="error">{error}</Alert>}
 
       {!error && orders.length === 0 && (
@@ -71,10 +71,10 @@ export default function OrdersPage() {
             key={o._id}
             className="rounded-2xl border border-line bg-cream p-5 shadow-card"
           >
-            <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex flex-wrap items-start justify-between gap-3 rounded-t-2xl bg-forest px-5 py-4 -mx-5 -mt-5 mb-4">
               <div>
-                <p className="text-xs uppercase tracking-wide text-muted">Order</p>
-                <p className="mt-0.5 font-medium text-ink break-all">{o._id}</p>
+                <p className="text-xs uppercase tracking-wide text-cream/70">Total</p>
+                <p className="mt-0.5 font-display text-xl text-cream">{formatMoney(o.totalPrice)}</p>
               </div>
               <span
                 className={`rounded-full px-2.5 py-1 text-xs font-medium capitalize ${statusTone(o.paymentStatus)}`}
@@ -85,7 +85,6 @@ export default function OrdersPage() {
             <p className="mt-2 text-sm text-muted">
               {o.createdAt ? new Date(o.createdAt).toLocaleString() : ""}
             </p>
-            <p className="mt-3 font-display text-xl text-ink">{formatMoney(o.totalPrice)}</p>
             <p className="mt-1 text-sm text-muted">
               Ship to: {o.shippingAddress?.street}, {o.shippingAddress?.city},{" "}
               {o.shippingAddress?.country}

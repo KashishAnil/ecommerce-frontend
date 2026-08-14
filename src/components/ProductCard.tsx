@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router";
+import { notifyCartUpdated } from "../context/ShopContext";
 import { useAppSelector } from "../hooks/redux";
 import type { Product } from "../types";
 import { apiFetch, formatMoney } from "../utils/api";
@@ -41,6 +42,7 @@ export default function ProductCard({ product, onDeleted }: Props) {
         body: JSON.stringify({ productId: product._id, quantity: qty }),
       });
       setSuccess("Added to cart.");
+      notifyCartUpdated();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not add to cart");
     } finally {
@@ -97,22 +99,11 @@ export default function ProductCard({ product, onDeleted }: Props) {
         </div>
 
         <p className="mt-1 text-sm font-medium text-brass">{formatMoney(product.price)}</p>
-        <p className="mt-0.5 text-xs text-muted">Stock: {stock}</p>
-        <p className="mt-3 line-clamp-3 flex-1 text-sm leading-relaxed text-muted">
-          {product.description}
-        </p>
 
         {error && <Alert className="mt-3" type="error">{error}</Alert>}
         {success && <Alert className="mt-3" type="success">{success}</Alert>}
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <Link
-            to={`/products/${product._id}`}
-            className="text-sm font-medium text-forest no-underline hover:underline"
-          >
-            Details
-          </Link>
-
           {canAdd && (
             <div className="ml-auto flex flex-wrap items-center gap-2">
               <QuantityInput value={qty} min={1} max={stock} onChange={setQty} />

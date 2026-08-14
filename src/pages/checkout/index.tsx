@@ -3,7 +3,7 @@ import { Alert } from "../../components/ui/Alert";
 import { Button } from "../../components/ui/Button";
 import { Field, Input } from "../../components/ui/Field";
 import type { Order } from "../../types";
-import { apiFetch } from "../../utils/api";
+import { apiFetch, appUrl } from "../../utils/api";
 
 export default function CheckoutPage() {
   const [error, setError] = useState("");
@@ -28,7 +28,13 @@ export default function CheckoutPage() {
 
       const payment = await apiFetch<{ checkoutUrl: string }>(
         `/payments/checkout/${order._id}`,
-        { method: "POST" },
+        {
+          method: "POST",
+          body: JSON.stringify({
+            successUrl: appUrl("/success"),
+            cancelUrl: appUrl("/"),
+          }),
+        },
       );
 
       if (!payment.checkoutUrl) {

@@ -1,4 +1,4 @@
-import { BASE_URL } from "../constants/api";
+import { BASE_NAME, BASE_URL } from "../constants/api";
 
 /**
  * Shared fetch() helper.
@@ -50,4 +50,11 @@ export async function apiFetch<T = unknown>(
 
 export function formatMoney(amount: number | undefined | null) {
   return `$${(Number(amount) || 0).toFixed(2)}`;
+}
+
+export function appUrl(path: string) {
+  const base = BASE_NAME.replace(/\/$/, "");
+  const p = path.startsWith("/") ? path : `/${path}`;
+  if (!base) return `${window.location.origin}${p}`;
+  return `${window.location.origin}${base}${p}`;
 }

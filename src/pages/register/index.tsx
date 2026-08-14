@@ -57,17 +57,16 @@ export default function RegisterPage() {
 
   return (
     <div className="mx-auto max-w-lg animate-fade-up">
-      <div className="rounded-3xl border border-line bg-cream p-7 shadow-card sm:p-8">
-        <p className="text-xs font-medium uppercase tracking-[0.2em] text-brass">Get started</p>
-        <h1 className="mt-2 font-display text-3xl text-ink">Create an account</h1>
-        <p className="mt-2 text-sm text-muted">
-          Choose Customer (shop &amp; order) or Seller (list products).
-        </p>
+      <div className="overflow-hidden rounded-3xl border border-line bg-cream shadow-card">
+        <div className="bg-forest px-7 py-7 sm:px-8">
+          <h1 className="font-display m-0 text-3xl text-cream">Create an account</h1>
+        </div>
+        <div className="p-7 sm:p-8">
 
-        {error && <Alert className="mt-5" type="error">{error}</Alert>}
-        {success && <Alert className="mt-5" type="success">{success}</Alert>}
+        {error && <Alert className="mb-5" type="error">{error}</Alert>}
+        {success && <Alert className="mb-5" type="success">{success}</Alert>}
 
-        <form onSubmit={onSubmit} className="mt-6 space-y-4">
+        <form onSubmit={onSubmit} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="First name" htmlFor="fName">
               <Input id="fName" name="fName" required autoComplete="given-name" />
@@ -117,6 +116,7 @@ export default function RegisterPage() {
         <p className="mt-5 text-sm text-muted">
           Already have an account? <Link to="/login">Log in</Link>
         </p>
+        </div>
       </div>
     </div>
   );

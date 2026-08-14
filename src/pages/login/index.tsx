@@ -28,15 +28,7 @@ export default function LoginPage() {
       });
 
       dispatch(setCredentials({ token: data.token }));
-
-      const payload = JSON.parse(
-        atob(data.token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")),
-      );
-      if (payload.role === "Seller") {
-        navigate("/seller/products");
-      } else {
-        navigate("/");
-      }
+      navigate("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {
@@ -46,14 +38,14 @@ export default function LoginPage() {
 
   return (
     <div className="mx-auto max-w-md animate-fade-up">
-      <div className="rounded-3xl border border-line bg-cream p-7 shadow-card sm:p-8">
-        <p className="text-xs font-medium uppercase tracking-[0.2em] text-brass">Welcome back</p>
-        <h1 className="mt-2 font-display text-3xl text-ink">Log in</h1>
-        <p className="mt-2 text-sm text-muted">Sign in to shop, checkout, or manage listings.</p>
+      <div className="overflow-hidden rounded-3xl border border-line bg-cream shadow-card">
+        <div className="bg-forest px-7 py-7 sm:px-8">
+          <h1 className="font-display m-0 text-3xl text-cream">Log in</h1>
+        </div>
+        <div className="p-7 sm:p-8">
+        {error && <Alert className="mb-5" type="error">{error}</Alert>}
 
-        {error && <Alert className="mt-5" type="error">{error}</Alert>}
-
-        <form onSubmit={onSubmit} className="mt-6 space-y-4">
+        <form onSubmit={onSubmit} className="space-y-4">
           <Field label="Email" htmlFor="email">
             <Input id="email" name="email" type="email" required autoComplete="email" />
           </Field>
@@ -74,6 +66,7 @@ export default function LoginPage() {
         <p className="mt-5 text-sm text-muted">
           No account yet? <Link to="/register">Register</Link>
         </p>
+        </div>
       </div>
     </div>
   );

@@ -52,6 +52,11 @@ a:hover {
   color: var(--color-forest-hover);
 }
 
+aside a,
+aside a:hover {
+  color: inherit;
+}
+
 #root {
   min-height: 100vh;
 }
