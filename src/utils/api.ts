@@ -58,3 +58,4 @@ export function appUrl(path: string) {
   if (!base) return `${window.location.origin}${p}`;
   return `${window.location.origin}${base}${p}`;
 }
+
