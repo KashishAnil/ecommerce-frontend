@@ -20,7 +20,6 @@ jobs:
           node-version: "22"
 
       - name: 🔨 Install Dependencies
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: |
           npm install --legacy-peer-deps
         env:
