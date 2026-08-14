@@ -1,7 +1,7 @@
 // API base URL for your Express backend.
 // In development we always talk to localhost:3000.
 
-const { hostname, origin, href } = window.location;
+const { hostname } = window.location;
 
 const servers = {
   local: "http://localhost:3000",
@@ -25,7 +25,7 @@ let enviroment: Environment = "development";
 if (hostname.includes("react.customdev.solutions")) {
   URL = servers.customDev;
   enviroment = "customdev";
-  basename = basename + href.replace(origin, "").split("/")[1];
+  basename = "/ecommerce-frontend";
 } else if (hostname.includes("app.realmoneydragon.io")) {
   URL = servers.live_test;
   enviroment = "live_test";
