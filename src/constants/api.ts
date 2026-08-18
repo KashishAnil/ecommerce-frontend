@@ -4,7 +4,7 @@
 const { hostname } = window.location;
 
 const servers = {
-  local: "http://localhost:3000",
+  local: "http://localhost:3048",
   customDev: "https://react.customdev.solutions:3048",
   live: "https://api.realmoneydragon.io",
   live_test: "https://api.test.realmoneydragon.io",
